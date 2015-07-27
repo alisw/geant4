@@ -67,6 +67,7 @@
 
 #include "G4ChargeState.hh"
 #include "G4EquationOfMotion.hh"
+#include "G4MultiLevelLocator.hh"
 
 #include "G4FieldManagerStore.hh"
 
@@ -90,6 +91,7 @@ G4Transportation::G4Transportation( G4int verbosity )
     fEndGlobalTimeComputed(false), 
     fCandidateEndGlobalTime(0.0),
     fParticleIsLooping( false ),
+    fParticleIsStuck( false ),
     fNewTrack( true ),
     fFirstStepInVolume( true ),
     fLastStepInVolume( false ), 
@@ -169,6 +171,7 @@ AlongStepGetPhysicalInteractionLength( const G4Track&  track,
 {
   G4double geometryStepLength= -1.0, newSafety= -1.0; 
   fParticleIsLooping = false ;
+  fParticleIsStuck = false ;
 
   // Initial actions moved to  StartTrack()   
   // --------------------------------------
@@ -353,6 +356,7 @@ AlongStepGetPhysicalInteractionLength( const G4Track&  track,
      {
         // Do the Transport in the field (non recti-linear)
         //
+        try {
         lengthAlongCurve = fFieldPropagator->ComputeStep( aFieldTrack,
                                                           currentMinimumStep, 
                                                           currentSafety,
@@ -370,6 +374,11 @@ AlongStepGetPhysicalInteractionLength( const G4Track&  track,
         fPreviousSftOrigin = startPosition ;
         fPreviousSafety    = currentSafety ;         
         fpSafetyHelper->SetCurrentSafety( currentSafety, startPosition);
+       }
+       catch(const G4MultiLevelLocator::KillTrackException&) {
+         fParticleIsStuck = true;
+         return 0.;
+       }
      }
      else
      {
@@ -529,6 +538,16 @@ G4VParticleChange* G4Transportation::AlongStepDoIt( const G4Track& track,
   noCalls++;
 
   fParticleChange.Initialize(track) ;
+
+  if ( fParticleIsStuck ) {
+    // Kill particle which is stuck
+    fParticleChange.ProposeTrackStatus( fStopAndKill )  ;
+    G4cout << " G4Transportation is killing track that is stuck "
+           << G4endl
+           << "   This track has " << track.GetKineticEnergy() / MeV
+           << " MeV energy." << G4endl << G4endl;
+    return &fParticleChange ;
+  }
 
   //  Code for specific process 
   //

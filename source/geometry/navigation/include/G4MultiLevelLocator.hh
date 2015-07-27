@@ -70,6 +70,12 @@ class G4MultiLevelLocator : public G4VIntersectionLocator
       // of the current volume (or of one of its daughters). 
       // Should use lateral displacement as measure of convergence
 
+     // Exception class to be used instead of FatalException which aborts program
+     class KillTrackException {
+       public: 
+        KillTrackException(const  G4FieldTrack& curveStartPointTangent);
+     };
+
    private:
 
      static const G4int max_depth=10;

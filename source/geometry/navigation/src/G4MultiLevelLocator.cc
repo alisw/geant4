@@ -32,6 +32,7 @@
 // ---------------------------------------------------------------------------
 
 #include <iomanip>
+#include <exception>
 
 #include "G4ios.hh"
 #include "G4MultiLevelLocator.hh"
@@ -100,6 +101,13 @@ G4bool G4MultiLevelLocator::EstimateIntersectionPoint(
                 G4ThreeVector&      previousSftOrigin)             // In/Out
 {
   // Find Intersection Point ( A, B, E )  of true path AB - start at E.
+
+  // Fake exception for test :
+  // kill all tracks with charge > 0
+  // if ( CurveStartPointVelocity.GetCharge() < 0 ) {
+  //   G4cout << "... Testing exception ..." << G4endl;
+  //   throw KillTrackException(CurveStartPointVelocity);
+  // }
 
   G4bool found_approximate_intersection = false;
   G4bool there_is_no_intersection       = false;
@@ -503,8 +511,11 @@ G4bool G4MultiLevelLocator::EstimateIntersectionPoint(
                   << depth;
           G4cerr.precision(oldprc);
 
+          //G4Exception("G4MultiLevelLocator::EstimateIntersectionPoint()",
+          //            "GeomNav0003 ", FatalException, message);
           G4Exception("G4MultiLevelLocator::EstimateIntersectionPoint()",
-                      "GeomNav0003", FatalException, message);
+                      "GeomNav0003 (Fatal->Warning) ", JustWarning, message);
+          throw KillTrackException(CurveStartPointVelocity);
         }
         if(restoredFullEndpoint)
         {
@@ -729,8 +740,11 @@ G4bool G4MultiLevelLocator::EstimateIntersectionPoint(
             << "        Remaining length = " << full_len - done_len; 
     G4cout.precision( oldprc ); 
 
+    //G4Exception("G4MultiLevelLocator::EstimateIntersectionPoint()",
+    //            "GeomNav0003", FatalException, message);
     G4Exception("G4MultiLevelLocator::EstimateIntersectionPoint()",
-                "GeomNav0003", FatalException, message);
+                "GeomNav0003 (Fatal->Warning)", JustWarning, message);
+    throw KillTrackException(CurveStartPointVelocity);
   }
   else if( substep_no >= warn_substeps )
   {  
@@ -749,3 +763,18 @@ G4bool G4MultiLevelLocator::EstimateIntersectionPoint(
   }
   return  !there_is_no_intersection; //  Success or failure
 }
+
+G4MultiLevelLocator::KillTrackException::KillTrackException(const  G4FieldTrack& fieldTrack)
+{
+  G4int oldprc = G4cout.precision( 10 ); 
+  std::ostringstream message;
+  message << " Cannot continue propagating track, track will be killed !!!" << G4endl
+          << "   particle momentum [Mev]: " << fieldTrack.GetMomentum() / CLHEP::MeV << G4endl
+          << "   particle kinetic energy [MeV]: " << fieldTrack.GetKineticEnergy() / CLHEP::MeV << G4endl
+          << "   particle charge: " << fieldTrack.GetCharge() << G4endl
+          << "   particle rest mass [GeV]: " << fieldTrack.GetRestMass() / CLHEP::GeV << G4endl;
+  G4Exception("G4MultiLevelLocator::G4MultiLevelLocator::KillTrackException",
+              "GeomNav1002", JustWarning, message);
+  G4cout.precision( oldprc ); 
+}
+

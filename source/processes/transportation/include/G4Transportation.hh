@@ -168,6 +168,7 @@ class G4Transportation : public G4VProcess
        // The particle's state after this Step, Store for DoIt
 
      G4bool               fParticleIsLooping;
+     G4bool               fParticleIsStuck;
      G4bool               fNewTrack;            // Flag from StartTracking 
      G4bool               fFirstStepInVolume;
      G4bool               fLastStepInVolume;     // Last step - almost same as next flag
