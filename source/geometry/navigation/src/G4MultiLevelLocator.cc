@@ -449,16 +449,29 @@ G4bool G4MultiLevelLocator::EstimateIntersectionPoint(
 
         // Change this condition for very strict parameters of propagation 
         //
-        if( curveDist*curveDist*(1+2* GetEpsilonStepFor()) < linDistSq )
+        if(    (curveDist>= 0.0) 
+            && (curveDist*curveDist*(1+2* GetEpsilonStepFor()) < linDistSq ) )
         {  
-          // Re-integrate to obtain a new B
-          //
-          G4FieldTrack newEndPointFT=
+          G4FieldTrack oldPointVelB = CurrentB_PointVelocity; 
+          G4FieldTrack newEndPointFT= CurrentB_PointVelocity;  // Unused
+
+          if (curveDist>0.0) 
+          {
+             // Re-integrate to obtain a new B
+             newEndPointFT=
                   ReEstimateEndpoint( CurrentA_PointVelocity,
                                       CurrentB_PointVelocity,
                                       linDistSq,    // to avoid recalculation
                                       curveDist );
-          G4FieldTrack oldPointVelB = CurrentB_PointVelocity; 
+          }else{
+             // Zero length -> no advance!
+             newEndPointFT= CurrentA_PointVelocity;
+             G4cerr << "G4MultiLevel : WARNING > " 
+                    << " Unexpected overlap in curve-distance of A & B "
+                    << "  - after Endif (Intersects_AF)."      << G4endl
+                    << " This creates a coincidence of A & B points. "
+                    << G4endl;
+          }
           CurrentB_PointVelocity = newEndPointFT;
            
           if ( (fin_section_depth[depth])           // real final section
@@ -469,6 +482,7 @@ G4bool G4MultiLevelLocator::EstimateIntersectionPoint(
               // So that we can return it, if it is the endpoint!
           }
         }
+
         if( curveDist < 0.0 )
         {
           G4int currentVerboseLevel = fVerboseLevel;
@@ -485,12 +499,8 @@ G4bool G4MultiLevelLocator::EstimateIntersectionPoint(
                   << G4endl
                   << "The final curve point is not further along"
                   << " than the original!" << G4endl;
-
-          if( recalculatedEndPoint )
-          {
-            message << "Recalculation of EndPoint was called with fEpsStep= "
-                    << GetEpsilonStepFor() << G4endl;
-          }
+          message << " Value of fEpsStep= " << GetEpsilonStepFor() << G4endl;
+          
           oldprc = G4cerr.precision(20);
           message << " Point A (Curve start)   is " << CurveStartPointVelocity
                   << G4endl
@@ -514,10 +524,10 @@ G4bool G4MultiLevelLocator::EstimateIntersectionPoint(
 
           //G4Exception("G4MultiLevelLocator::EstimateIntersectionPoint()",
           //            "GeomNav0003 ", FatalException, message);
-          G4Exception("G4MultiLevelLocator::EstimateIntersectionPoint()",
+          G4Exception("G4MultiLevelLocator::EstimateIntersectionPoint(1)",
                       "GeomNav0003 (Fatal->Warning) ", JustWarning, message);
-
-          fVerboseLevel = currentVerboseLevel; 
+          fVerboseLevel = currentVerboseLevel;
+          // Do not throw but mark that we get here
           throw KillTrackException(CurveStartPointVelocity);
         }
         if(restoredFullEndpoint)
@@ -637,7 +647,7 @@ G4bool G4MultiLevelLocator::EstimateIntersectionPoint(
                     - CurrentA_PointVelocity.GetPosition() ).mag2(); 
         curveDist = CurrentB_PointVelocity.GetCurveLength()
                     - CurrentA_PointVelocity.GetCurveLength();
-        if( curveDist*curveDist*(1+2*GetEpsilonStepFor() ) < linDistSq )
+        if( (curveDist>0.0) && (curveDist*curveDist*(1+2*GetEpsilonStepFor() ) < linDistSq ) )
         {
           // Re-integrate to obtain a new B
           //
@@ -745,7 +755,7 @@ G4bool G4MultiLevelLocator::EstimateIntersectionPoint(
 
     //G4Exception("G4MultiLevelLocator::EstimateIntersectionPoint()",
     //            "GeomNav0003", FatalException, message);
-    G4Exception("G4MultiLevelLocator::EstimateIntersectionPoint()",
+    G4Exception("G4MultiLevelLocator::EstimateIntersectionPoint(2)",
                 "GeomNav0003 (Fatal->Warning)", JustWarning, message);
     throw KillTrackException(CurveStartPointVelocity);
   }
