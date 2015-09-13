@@ -471,6 +471,7 @@ G4bool G4MultiLevelLocator::EstimateIntersectionPoint(
         }
         if( curveDist < 0.0 )
         {
+          G4int currentVerboseLevel = fVerboseLevel;
           fVerboseLevel = 5; // Print out a maximum of information
           printStatus( CurrentA_PointVelocity,  CurrentB_PointVelocity,
                        -1.0, NewSafety,  substep_no );
@@ -515,6 +516,8 @@ G4bool G4MultiLevelLocator::EstimateIntersectionPoint(
           //            "GeomNav0003 ", FatalException, message);
           G4Exception("G4MultiLevelLocator::EstimateIntersectionPoint()",
                       "GeomNav0003 (Fatal->Warning) ", JustWarning, message);
+
+          fVerboseLevel = currentVerboseLevel; 
           throw KillTrackException(CurveStartPointVelocity);
         }
         if(restoredFullEndpoint)
