@@ -27,7 +27,7 @@
 /// \brief Implementation of the EventAction class
 //
 //
-// $Id: EventAction.cc 85905 2014-11-06 08:51:55Z gcosmo $
+// $Id: EventAction.cc 67226 2013-02-08 12:07:18Z ihrivnac $
 //
 // 
 
