@@ -64,7 +64,7 @@ class G4NystromRK4 : public G4MagIntegratorStepper
       // Single call for integration result and error
       // - Provides Error via analytical method
 
-    virtual void ComputeRightHandSide(const double P[],double dPdS[]);   
+    virtual void ComputeRightHandSide(const G4double P[],G4double dPdS[]);   
       // Must compute RHS - and does caches result
 
     void      SetDistanceForConstantField( G4double length ); 
@@ -77,6 +77,10 @@ class G4NystromRK4 : public G4MagIntegratorStepper
 
     inline void getField   (const G4double P[4]);
 
+    G4bool CheckCachedMomemtum( const G4double PosMom[6], G4double savedMom );
+    G4bool CheckFieldPosition( const G4double Position[3],
+                               const G4double lastPosition[3] );
+   
     ////////////////////////////////////////////////////////////////
     // Private data
     ////////////////////////////////////////////////////////////////
