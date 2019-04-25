@@ -51,7 +51,7 @@ G4ComponentAntiNuclNuclearXS::G4ComponentAntiNuclNuclearXS()
   fRadiusEff(0.0), fRadiusNN2(0.0),
   fTotalXsc(0.0), fElasticXsc(0.0), fInelasticXsc(0.0),
   fAntiHadronNucleonTotXsc(0.0), fAntiHadronNucleonElXsc(0.0),
-  Elab(0.0), S(0.0), SqrtS(0) 
+  Elab(0.0), S(0.0), SqrtS(0), fScalingFactorXsc(1.0)
 {
   theAProton       = G4AntiProton::AntiProton();
   theANeutron      = G4AntiNeutron::AntiNeutron();
@@ -247,7 +247,14 @@ G4double G4ComponentAntiNuclNuclearXS::GetInelasticElementCrossSection
 
  inelxsection  = pi*REf2 *10* G4Log(1+(ApAt*sigmaTotal/(pi*REf2*10.))); //mb
  inelxsection  = inelxsection * millibarn;  
-   fInelasticXsc =  inelxsection; 
+   fInelasticXsc =  inelxsection;
+    
+    // scale inelastic cross-section with a momentum-dependent factor
+    if (theParticle ==theADeuteron) {
+        fScalingFactorXsc = GetScalingFactorCrSc(aParticle,kinEnergy);
+        fInelasticXsc     = inelxsection*fScalingFactorXsc;
+    }
+    
    return fInelasticXsc;
 }
 
@@ -270,6 +277,14 @@ G4double G4ComponentAntiNuclNuclearXS::GetElasticElementCrossSection
 {
  fElasticXsc = GetTotalElementCrossSection(aParticle, kinEnergy, Z, A)-
    GetInelasticElementCrossSection(aParticle, kinEnergy, Z, A);
+    
+    // keep elastic cross-section unchanged
+    if (aParticle ==theADeuteron) {
+        fScalingFactorXsc = GetScalingFactorCrSc(aParticle,kinEnergy);
+        
+        fElasticXsc = GetTotalElementCrossSection(aParticle, kinEnergy, Z, A)-
+        GetInelasticElementCrossSection(aParticle, kinEnergy, Z, A)/fScalingFactorXsc;
+    }
 
  if (fElasticXsc < 0.) fElasticXsc = 0.;
 
@@ -351,6 +366,28 @@ GetAntiHadronNucleonElCrSc(const G4ParticleDefinition* aParticle, G4double kinEn
 
   fAntiHadronNucleonElXsc = xsection;
   return fAntiHadronNucleonElXsc;
+}
+
+//
+// /////////////////////////////////////////////////////////////////////////////////
+// Calculation of scaling factor for Cross-section
+
+G4double G4ComponentAntiNuclNuclearXS::GetScalingFactorCrSc(const G4ParticleDefinition* aParticle, G4double kinEnergy){
+    
+    const G4ParticleDefinition* theParticle = aParticle;
+    G4double mass = theParticle->GetPDGMass();
+    G4double p = std::sqrt(kinEnergy*kinEnergy + 2.0*kinEnergy*mass); // p in MeV
+    p = p/1000.; // make p in GeV
+    if (p < 0.2 || p > 4.5) return 1.0; // set factor to 1.0 outside (0.2, 4.5) GeV range
+    
+    // scaling factor for anti-d inelastic cross-section vs momentum (upper limit)
+    G4double ScalingFactor = -2.33+2.50*std::pow(p,-1.06)+1.45*p-0.17*p*p;
+    
+    // scaling factor for anti-d inelastic cross-section vs momentum (lower limit)
+    // G4double ScalingFactor = -0.24+0.37*std::pow(p,-2.80)+0.88*p-0.18*p*p;
+    
+    return ScalingFactor;
+    
 }
 
 void G4ComponentAntiNuclNuclearXS::CrossSectionDescription(std::ostream& outFile) const
