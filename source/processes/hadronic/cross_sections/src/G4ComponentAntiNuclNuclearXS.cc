@@ -43,6 +43,8 @@
 #include "G4ParticleDefinition.hh"
 #include "G4Pow.hh"
 
+#include <dlfcn.h>
+
 ///////////////////////////////////////////////////////////////////////////////
 
 G4ComponentAntiNuclNuclearXS::G4ComponentAntiNuclNuclearXS() 
@@ -378,16 +380,16 @@ G4double G4ComponentAntiNuclNuclearXS::GetScalingFactorCrSc(const G4ParticleDefi
     G4double mass = theParticle->GetPDGMass();
     G4double p = std::sqrt(kinEnergy*kinEnergy + 2.0*kinEnergy*mass); // p in MeV
     p = p/1000.; // make p in GeV
-    if (p < 0.2 || p > 4.5) return 1.0; // set factor to 1.0 outside (0.2, 4.5) GeV range
+
+    static void* lib = dlopen("CustomScalingFunction.so", RTLD_NOW);
+    if (!lib)
+      return 1.0;
+    static void* fun = dlsym(lib, "CustomScalingFunction");
+    if (!p)
+      return 1.0;
+    static double (*scaling)(double) = (double (*)(double)) fun;
     
-    // scaling factor for anti-d inelastic cross-section vs momentum (upper limit)
-    G4double ScalingFactor = -2.33+2.50*std::pow(p,-1.06)+1.45*p-0.17*p*p;
-    
-    // scaling factor for anti-d inelastic cross-section vs momentum (lower limit)
-    // G4double ScalingFactor = -0.24+0.37*std::pow(p,-2.80)+0.88*p-0.18*p*p;
-    
-    return ScalingFactor;
-    
+    return scaling(p);
 }
 
 void G4ComponentAntiNuclNuclearXS::CrossSectionDescription(std::ostream& outFile) const
