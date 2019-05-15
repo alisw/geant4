@@ -211,6 +211,7 @@ GEANT4_DEFINE_MODULE(NAME G4hadronic_xsect
         G4particles
         G4track
     LINK_LIBRARIES
+        dl
 )
 
 # List any source specific properties here
