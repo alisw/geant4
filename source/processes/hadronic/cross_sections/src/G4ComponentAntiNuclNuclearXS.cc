@@ -375,20 +375,22 @@ GetAntiHadronNucleonElCrSc(const G4ParticleDefinition* aParticle, G4double kinEn
 // Calculation of scaling factor for Cross-section
 
 G4double G4ComponentAntiNuclNuclearXS::GetScalingFactorCrSc(const G4ParticleDefinition* aParticle, G4double kinEnergy){
-    
+
     const G4ParticleDefinition* theParticle = aParticle;
     G4double mass = theParticle->GetPDGMass();
     G4double p = std::sqrt(kinEnergy*kinEnergy + 2.0*kinEnergy*mass); // p in MeV
     p = p/1000.; // make p in GeV
 
-    static void* lib = dlopen("CustomScalingFunction.so", RTLD_NOW);
-    if (!lib)
+    static void* lib = dlopen("./CustomScalingFunction.so", RTLD_NOW);
+    if (!lib) {
       return 1.0;
+    }
     static void* fun = dlsym(lib, "CustomScalingFunction");
-    if (!p)
+    if (!fun) {
       return 1.0;
+    }
     static double (*scaling)(double) = (double (*)(double)) fun;
-    
+
     return scaling(p);
 }
 
