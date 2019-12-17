@@ -247,15 +247,13 @@ G4double G4ComponentAntiNuclNuclearXS::GetInelasticElementCrossSection
   G4double REf2  = R2+fRadiusNN2;
   G4double  ApAt= std::abs(theParticle->GetBaryonNumber())  *  A;
 
- inelxsection  = pi*REf2 *10* G4Log(1+(ApAt*sigmaTotal/(pi*REf2*10.))); //mb
- inelxsection  = inelxsection * millibarn;  
-   fInelasticXsc =  inelxsection;
+  inelxsection  = pi*REf2 *10* G4Log(1+(ApAt*sigmaTotal/(pi*REf2*10.))); //mb
+  inelxsection  = inelxsection * millibarn;
+  fInelasticXsc =  inelxsection;
     
-    // scale inelastic cross-section with a momentum-dependent factor
-    if (theParticle ==theADeuteron) {
-        fScalingFactorXsc = GetScalingFactorCrSc(aParticle,kinEnergy);
-        fInelasticXsc     = inelxsection*fScalingFactorXsc;
-    }
+  // scale inelastic cross-section with a momentum-dependent factor
+  fScalingFactorXsc = GetScalingFactorCrSc(aParticle,kinEnergy);
+  fInelasticXsc     = inelxsection*fScalingFactorXsc;
     
    return fInelasticXsc;
 }
@@ -280,13 +278,11 @@ G4double G4ComponentAntiNuclNuclearXS::GetElasticElementCrossSection
  fElasticXsc = GetTotalElementCrossSection(aParticle, kinEnergy, Z, A)-
    GetInelasticElementCrossSection(aParticle, kinEnergy, Z, A);
     
-    // keep elastic cross-section unchanged
-    if (aParticle ==theADeuteron) {
-        fScalingFactorXsc = GetScalingFactorCrSc(aParticle,kinEnergy);
-        
-        fElasticXsc = GetTotalElementCrossSection(aParticle, kinEnergy, Z, A)-
-        GetInelasticElementCrossSection(aParticle, kinEnergy, Z, A)/fScalingFactorXsc;
-    }
+  // keep elastic cross-section unchanged
+  fScalingFactorXsc = GetScalingFactorCrSc(aParticle,kinEnergy);
+
+  fElasticXsc = GetTotalElementCrossSection(aParticle, kinEnergy, Z, A)-
+    GetInelasticElementCrossSection(aParticle, kinEnergy, Z, A)/fScalingFactorXsc;
 
  if (fElasticXsc < 0.) fElasticXsc = 0.;
 
@@ -389,9 +385,9 @@ G4double G4ComponentAntiNuclNuclearXS::GetScalingFactorCrSc(const G4ParticleDefi
     if (!fun) {
       return 1.0;
     }
-    static double (*scaling)(double) = (double (*)(double)) fun;
+    static double (*scaling)(double,int) = (double (*)(double,int)) fun;
 
-    return scaling(p);
+    return scaling(p, aParticle->GetPDGEncoding());
 }
 
 void G4ComponentAntiNuclNuclearXS::CrossSectionDescription(std::ostream& outFile) const
