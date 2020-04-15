@@ -110,6 +110,7 @@ G4double GetAntiHadronNucleonElCrSc(const G4ParticleDefinition* aParticle, G4dou
     
 // Method for calculation of scaling factor for cross-section
 G4double GetScalingFactorCrSc(const G4ParticleDefinition* aParticle, G4double kinEnergy);
+G4double GetScalingFactorCrScElastic(const G4ParticleDefinition* aParticle, G4double kinEnergy);
 
 
 private:
