@@ -67,7 +67,8 @@ vis_libs="-lG4Tree \
 -lG4RayTracer \
 -lG4VRML \
 -lG4vis_management \
--lG4modeling"
+-lG4modeling \
+-lG4tasking"
 
 #-----------------------------------------------------------------------
 # Core setup...
@@ -113,7 +114,6 @@ done
 
 libs="-lG4interfaces \
 -lG4persistency \
--lG4analysis \
 -lG4error_propagation \
 -lG4readout \
 -lG4physicslists \
@@ -122,6 +122,7 @@ libs="-lG4interfaces \
 -lG4tracking \
 -lG4parmodels \
 -lG4processes \
+-lG4analysis \
 -lG4digits_hits \
 -lG4track \
 -lG4particles \
@@ -129,7 +130,8 @@ libs="-lG4interfaces \
 -lG4materials \
 -lG4graphics_reps \
 -lG4intercoms \
--lG4global"
+-lG4global \
+-lG4ptl"
 
 #-----------------------------------------------------------------------
 # - Extra optional features that were enabled.
