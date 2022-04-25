@@ -189,12 +189,24 @@ G4VParticleChange* G4OpBoundaryProcess::PostStepDoIt(const G4Track& aTrack,
     if(verboseLevel > 1)
       BoundaryProcessVerbose();
 
-    G4MaterialPropertyVector* groupvel =
-      fMaterial2->GetMaterialPropertiesTable()->GetProperty(kGROUPVEL);
-    if(groupvel != nullptr)
+    auto matPropTable2 = fMaterial2->GetMaterialPropertiesTable();
+    if(matPropTable2 != nullptr)
     {
-      aParticleChange.ProposeVelocity(
-        groupvel->Value(fPhotonMomentum, idx_groupvel));
+      G4MaterialPropertyVector* groupvel =
+        matPropTable2->GetProperty(kGROUPVEL);
+      if(groupvel != nullptr)
+      {
+        aParticleChange.ProposeVelocity(
+          groupvel->Value(fPhotonMomentum, idx_groupvel));
+      }
+      else
+      {
+        G4cout << "WARNING aTrack.GetStepLength() <= fCarTolerance: Could not access material property kGROUPVEL for " << fMaterial2->GetName() << G4endl;
+      }
+    }
+    else
+    {
+      G4cout << "WARNING aTrack.GetStepLength() <= fCarTolerance: Could not access material property table for " << fMaterial2->GetName() << G4endl;
     }
     return G4VDiscreteProcess::PostStepDoIt(aTrack, aStep);
   }
@@ -502,12 +514,24 @@ G4VParticleChange* G4OpBoundaryProcess::PostStepDoIt(const G4Track& aTrack,
 
   if(fStatus == FresnelRefraction || fStatus == Transmission)
   {
-    G4MaterialPropertyVector* groupvel =
-      fMaterial2->GetMaterialPropertiesTable()->GetProperty(kGROUPVEL);
-    if(groupvel != nullptr)
+    auto matPropTable2 = fMaterial2->GetMaterialPropertiesTable();
+    if(matPropTable2 != nullptr)
     {
-      aParticleChange.ProposeVelocity(
-        groupvel->Value(fPhotonMomentum, idx_groupvel));
+      G4MaterialPropertyVector* groupvel =
+        matPropTable2->GetProperty(kGROUPVEL);
+      if(groupvel != nullptr)
+      {
+        aParticleChange.ProposeVelocity(
+          groupvel->Value(fPhotonMomentum, idx_groupvel));
+      }
+      else
+      {
+        G4cout << "WARNING fStatus == FresnelRefraction || fStatus == Transmission: Could not access material property kGROUPVEL for " << fMaterial2->GetName() << G4endl;
+      }
+    }
+    else
+    {
+      G4cout << "WARNING fStatus == FresnelRefraction || fStatus == Transmission: Could not access material property table for " << fMaterial2->GetName() << G4endl;
     }
   }
 
