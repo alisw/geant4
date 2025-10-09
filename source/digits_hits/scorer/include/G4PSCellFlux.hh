@@ -60,14 +60,14 @@ class G4PSCellFlux : public G4VPrimitivePlotter
   G4PSCellFlux(G4String name, G4int depth = 0);
   G4PSCellFlux(G4String name, const G4String& unit, G4int depth = 0);
   ~G4PSCellFlux() override = default;
-
+  // Use particle general weight
   inline void Weighted(G4bool flg = true) { weighted = flg; }
-  // Multiply track weight
-
+  // Usee specific weight for scoring
+  inline void ScoreWeighted(G4bool flg = false) { scoreWeighted = flg; }
+  //
   void Initialize(G4HCofThisEvent*) override;
   void clear() override;
   void PrintAll() override;
-
   virtual void SetUnit(const G4String& unit);
 
  protected:
@@ -79,5 +79,6 @@ class G4PSCellFlux : public G4VPrimitivePlotter
   G4int HCID;
   G4THitsMap<G4double>* EvtMap;
   G4bool weighted;
+  G4bool scoreWeighted;
 };
 #endif

@@ -4,6 +4,7 @@
 geant4_add_module(G4detutils
   PUBLIC_HEADERS
     G4DefaultLinearColorMap.hh
+    G4FluenceWeightCalculator.hh
     G4ScoreLogColorMap.hh
     G4VScoreNtupleWriter.hh
     G4TScoreNtupleWriter.hh
@@ -22,6 +23,7 @@ geant4_add_module(G4detutils
     G4VScoringMesh.hh
   SOURCES
     G4DefaultLinearColorMap.cc
+    G4FluenceWeightCalculator.cc
     G4ScoreLogColorMap.cc
     G4VScoreNtupleWriter.cc
     G4ScoreQuantityMessenger.cc

@@ -1,4 +1,3 @@
-//
 // ********************************************************************
 // * License and Disclaimer                                           *
 // *                                                                  *
@@ -35,6 +34,7 @@
 #include "G4VPVParameterisation.hh"
 #include "G4UnitsTable.hh"
 #include "G4VScoreHistFiller.hh"
+#include "G4FluenceWeightCalculator.hh"
 
 ///////////////////////////////////////////////////////////////////////////////
 // (Description)
@@ -64,6 +64,7 @@ G4PSCellFlux::G4PSCellFlux(G4String name, const G4String& unit, G4int depth)
   , HCID(-1)
   , EvtMap(nullptr)
   , weighted(true)
+  , scoreWeighted(false)
 {
   DefineUnitAndCategory();
   SetUnit(unit);
@@ -78,13 +79,19 @@ G4bool G4PSCellFlux::ProcessHits(G4Step* aStep, G4TouchableHistory*)
   G4int idx = ((G4TouchableHistory*) (aStep->GetPreStepPoint()->GetTouchable()))
                 ->GetReplicaNumber(indexDepth);
   G4double cubicVolume = ComputeVolume(aStep, idx);
-
-  G4double CellFlux = stepLength / cubicVolume;
+  const G4Track* track = aStep->GetTrack();
+  G4double pWeight = 1.;
+  if (scoreWeighted) {
+    G4double kineticEnergy = track->GetKineticEnergy();
+    const auto* particle = track->GetParticleDefinition();
+    pWeight = G4FluenceWeightCalculator::GetInstance()->GetWeight(particle, kineticEnergy);
+  }
+  G4double CellFlux = stepLength / cubicVolume * pWeight;
   if(weighted)
     CellFlux *= aStep->GetPreStepPoint()->GetWeight();
   G4int index = GetIndex(aStep);
   EvtMap->add(index, CellFlux);
-
+   
   if(!hitIDMap.empty() && hitIDMap.find(index) != hitIDMap.end())
   {
     auto filler = G4VScoreHistFiller::Instance();
@@ -148,3 +155,5 @@ G4double G4PSCellFlux::ComputeVolume(G4Step* aStep, G4int idx)
   assert(solid);
   return solid->GetCubicVolume();
 }
+
+
