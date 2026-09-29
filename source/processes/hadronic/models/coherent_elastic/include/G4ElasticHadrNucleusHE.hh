@@ -106,6 +106,11 @@ public:
 
   void ModelDescription(std::ostream&) const override;
 
+  // Computes the pion data for all elements and writes them to hedata/ in
+  // the current directory. When G4ELASTICHEDATA names a directory holding
+  // hedata/, the data are read from there instead of being computed.
+  void StoreData();
+
 private:
 
   G4double HadronNucleusQ2_2(const G4ElasticData *pElD, G4double plabGeV, 
