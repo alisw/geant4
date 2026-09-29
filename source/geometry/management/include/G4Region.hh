@@ -38,6 +38,7 @@
 
 #include <vector>
 #include <map>
+#include <unordered_set>
 #include <algorithm>
 
 #include "G4Types.hh"
@@ -199,9 +200,18 @@ class G4Region
       // Set the world physical volume if this region belongs to this world.
       // If wp is null, reset the pointer.
 
+    inline void SetWorldPhysical(G4VPhysicalVolume* wp);
+      // Set the world physical volume without checking that this region
+      // belongs to it.
+
     G4bool BelongsTo(G4VPhysicalVolume* thePhys) const;
       // Returns whether this region belongs to the given physical volume
-      // (recursively scanned to the bottom of the hierarchy).
+      // (scanned to the bottom of the hierarchy, each logical volume once).
+
+    static void CollectRegions(const G4LogicalVolume* top,
+                               std::unordered_set<const G4Region*>& regions);
+      // Adds the regions of all logical volumes below top, including top,
+      // visiting each logical volume once.
 
     G4Region* GetParentRegion(G4bool& unique) const;
       // Returns a region that contains this region. Otherwise null returned.

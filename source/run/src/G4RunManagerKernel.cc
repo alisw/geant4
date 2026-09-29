@@ -70,6 +70,7 @@
 #include "G4Version.hh"
 #include "G4ios.hh"
 
+#include <unordered_set>
 #include <vector>
 
 #ifdef G4BT_DEBUG
@@ -747,25 +748,34 @@ void G4RunManagerKernel::CheckRegions()
   G4TransportationManager* transM = G4TransportationManager::GetTransportationManager();
   std::size_t nWorlds = transM->GetNoWorlds();
   std::vector<G4VPhysicalVolume*>::iterator wItr;
+
+  // Collect the regions of each world in one pass over its logical volumes,
+  // instead of scanning the whole volume tree once per region.
+  std::vector<std::unordered_set<const G4Region*>> regionsInWorld(nWorlds);
+  wItr = transM->GetWorldsIterator();
+  for (std::size_t iw = 0; iw < nWorlds; ++iw) {
+    G4Region::CollectRegions((*wItr)->GetLogicalVolume(), regionsInWorld[iw]);
+    ++wItr;
+  }
+
   for (auto region : *G4RegionStore::GetInstance()) {
     // Let each region have a pointer to the world volume where it belongs to.
-    // G4Region::SetWorld() checks if the region belongs to the given world and
-    // set it only if it does. Thus, here we go through all the registered world
-    // volumes.
+    // Here we go through all the registered world volumes and set the one
+    // the region belongs to.
     region->SetWorld(nullptr);  // reset
     region->UsedInMassGeometry(false);
     region->UsedInParallelGeometry(false);
     wItr = transM->GetWorldsIterator();
     for (std::size_t iw = 0; iw < nWorlds; ++iw) {
-      if (region->BelongsTo(*wItr)) {
+      if (regionsInWorld[iw].count(region) != 0) {
         if (*wItr == currentWorld) {
           region->UsedInMassGeometry(true);
         }
         else {
           region->UsedInParallelGeometry(true);
         }
+        region->SetWorldPhysical(*wItr);
       }
-      region->SetWorld(*wItr);
       ++wItr;
     }
 
