@@ -422,21 +422,42 @@ void G4Region::SetWorld(G4VPhysicalVolume* wp)
 // *******************************************************************
 // BelongsTo:
 //  - Returns whether this region belongs to the given physical volume
-//    (recursively scanned to the bottom of the hierarchy)
+//    (scanned to the bottom of the hierarchy, each logical volume once)
 // *******************************************************************
 // 
 G4bool G4Region::BelongsTo(G4VPhysicalVolume* thePhys) const
 {
-  G4LogicalVolume* currLog = thePhys->GetLogicalVolume();
-  if (currLog->GetRegion()==this) {return true;}
+  std::unordered_set<const G4Region*> regions;
+  CollectRegions(thePhys->GetLogicalVolume(), regions);
+  return regions.count(this) != 0;
+}
 
-  std::size_t nDaughters = currLog->GetNoDaughters();
-  while ((nDaughters--) != 0)  // Loop checking, 06.08.2015, G.Cosmo
+// *******************************************************************
+// CollectRegions:
+//  - Adds the regions of all logical volumes below top, including top.
+//    Each logical volume is visited once, however often it is placed.
+// *******************************************************************
+//
+void G4Region::CollectRegions(const G4LogicalVolume* top,
+                              std::unordered_set<const G4Region*>& regions)
+{
+  std::unordered_set<const G4LogicalVolume*> visited;
+  std::vector<const G4LogicalVolume*> toVisit{top};
+  while (!toVisit.empty())  // Loop checking: each logical volume is visited once
   {
-    if (BelongsTo(currLog->GetDaughter(nDaughters))) {return true;}
-  }
+    const G4LogicalVolume* currLog = toVisit.back();
+    toVisit.pop_back();
+    if (!visited.insert(currLog).second) { continue; }
 
-  return false;
+    G4Region* region = currLog->GetRegion();
+    if (region != nullptr) { regions.insert(region); }
+
+    std::size_t nDaughters = currLog->GetNoDaughters();
+    for (std::size_t i=0; i<nDaughters; ++i)
+    {
+      toVisit.push_back(currLog->GetDaughter(i)->GetLogicalVolume());
+    }
+  }
 }
 
 // *******************************************************************
