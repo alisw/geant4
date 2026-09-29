@@ -55,6 +55,11 @@
 #include  "G4Element.hh"
 #include  "G4Log.hh"
 #include  "G4Exp.hh"
+#include  "G4Version.hh"
+
+#include <cstdlib>
+#include <iomanip>
+#include <limits>
 
 using namespace std;
 
@@ -87,6 +92,15 @@ G4ElasticHadrNucleusHE::fElasticData[NHADRONS][ZMAX] = {{nullptr}};
 
 G4bool G4ElasticHadrNucleusHE::fStoreToFile = false;
 G4bool G4ElasticHadrNucleusHE::fRetrieveFromFile = false;
+
+// First line of a data file, checked when the file is read
+static G4String DataHeader(const G4ParticleDefinition* p, G4int Z, G4int A)
+{
+  std::ostringstream ss;
+  ss << "G4ElasticHadrNucleusHE " << G4VERSION_NUMBER << " "
+     << p->GetParticleName() << " " << Z << " " << A << " " << NENERGY;
+  return ss.str();
+}
 
 const G4double invGeV    =  1.0/CLHEP::GeV;
 const G4double MbToGeV2  =  2.568;
@@ -263,6 +277,12 @@ G4ElasticHadrNucleusHE::G4ElasticHadrNucleusHE(const G4String& name)
 
   nistManager = G4NistManager::Instance();
 
+  const char* dir = std::getenv("G4ELASTICHEDATA");
+  if(dir != nullptr) {
+    fDirectory = dir;
+    fRetrieveFromFile = true;
+  }
+
   if(fEnergy[0] == 0.0) {
 #ifdef G4MULTITHREADED
     G4MUTEXLOCK(&elasticMutex);
@@ -327,7 +347,6 @@ G4ElasticHadrNucleusHE::~G4ElasticHadrNucleusHE()
 	}
       }
     }
-    delete fDirectory;
     fDirectory = nullptr;
   }
 }
@@ -438,6 +457,31 @@ G4ElasticHadrNucleusHE::SampleInvariantT(const G4ParticleDefinition* p,
 
 ////////////////////////////////////////////////////////////////
 
+void G4ElasticHadrNucleusHE::StoreData()
+{
+  G4bool retrieve = fRetrieveFromFile;
+  fRetrieveFromFile = false;
+  fStoreToFile = true;
+  for(G4int i=0; i<2; ++i) {
+    const G4ParticleDefinition* p = G4PionPlus::PionPlus();
+    if(1 == i) { p = G4PionMinus::PionMinus(); }
+    iHadrCode = fHadronCode[i];
+    iHadron   = fHadronType[i];
+    iHadron1  = fHadronType1[i];
+    hMass     = p->GetPDGMass()*invGeV;
+    hMass2    = hMass*hMass;
+    // pi- shares the pi+ data except for hydrogen, as in InitialiseModel
+    G4int zmax = (0 == i) ? ZMAX : 2;
+    for(G4int Z=1; Z<zmax; ++Z) {
+      if(!fElasticData[i][Z]) { FillData(p, i, Z); }
+    }
+  }
+  fStoreToFile = false;
+  fRetrieveFromFile = retrieve;
+}
+
+////////////////////////////////////////////////////////////////////
+
 void G4ElasticHadrNucleusHE::FillData(const G4ParticleDefinition* p, 
                                       G4int idx, G4int Z)
 {
@@ -447,17 +491,19 @@ void G4ElasticHadrNucleusHE::FillData(const G4ParticleDefinition* p,
 #endif
     G4int A = G4lrint(nistManager->GetAtomicMassAmu(Z));
     G4ElasticData* pElD = new G4ElasticData(p, Z, A, fEnergy);
+    // A missing, foreign or truncated file falls back to computing the data
+    G4bool retrieved = false;
     if(fRetrieveFromFile) { 
       std::ostringstream ss;
       InFileName(ss, p, Z); 
       std::ifstream infile(ss.str(), std::ios::in);
-      for(G4int i=0; i<NENERGY; ++i) {
-	if(ReadLine(infile, pElD->fCumProb[i])) {
-	  continue;
-	} else {
-	  fRetrieveFromFile = false;
-          break;
-	}
+      std::string header;
+      retrieved = std::getline(infile, header) && header == DataHeader(p, Z, A);
+      for(G4int i=0; retrieved && i<NENERGY; ++i) {
+        retrieved = ReadLine(infile, pElD->fCumProb[i]);
+      }
+      if(!retrieved) {
+        for(G4int i=0; i<NENERGY; ++i) { pElD->fCumProb[i].clear(); }
       }
       infile.close();
     }
@@ -474,7 +520,7 @@ void G4ElasticHadrNucleusHE::FillData(const G4ParticleDefinition* p,
 	    <<" Pnucl= " << Pnucl << G4endl;
     }
 
-    if(!fRetrieveFromFile) {  
+    if(!retrieved) {  
       for(G4int i=0; i<NENERGY; ++i) {
 	G4double T = fEnergy[i];
 	hLabMomentum2 = T*(T + 2.*hMass);
@@ -508,6 +554,7 @@ void G4ElasticHadrNucleusHE::FillData(const G4ParticleDefinition* p,
       std::ostringstream ss;
       OutFileName(ss, p, Z); 
       std::ofstream fileout(ss.str());
+      fileout << DataHeader(p, Z, A) << G4endl;
       for(G4int i=0; i<NENERGY; ++i) {
 	WriteLine(fileout, pElD->fCumProb[i]);
       }
@@ -1382,9 +1429,9 @@ G4ElasticHadrNucleusHE::InFileName(std::ostringstream& ss,
 {
   if(!fDirectory) {
     fDirectory = G4FindDataDir("G4LEDATA");
-    if (fDirectory) { 
-      ss << fDirectory << "/";
-    }
+  }
+  if (fDirectory) { 
+    ss << fDirectory << "/";
   }
   OutFileName(ss, p, Z);
 }
@@ -1424,6 +1471,7 @@ void G4ElasticHadrNucleusHE::WriteLine(std::ofstream& outfile,
 				       std::vector<G4double>& v)
 {
   std::size_t n = v.size();
+  outfile << std::setprecision(std::numeric_limits<G4double>::max_digits10);
   outfile << n << G4endl;
   if(n > 0) {
     for(std::size_t i=0; i<n; ++i) {
