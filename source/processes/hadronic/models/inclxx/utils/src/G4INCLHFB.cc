@@ -54,25 +54,27 @@
 namespace G4INCL {
 
   namespace {
+   // allocated on first use, so that INCL++ takes no 1.1 MB of TLS in every thread
+   struct HFBTables {
+     G4double radiusP[TableZSize][TableASize];
+     G4double radiusN[TableZSize][TableASize];
+     G4double diffusenessP[TableZSize][TableASize];
+     G4double diffusenessN[TableZSize][TableASize];
+   };
    #ifdef INCLXX_IN_GEANT4_MODE
-         G4ThreadLocal G4double radiusP[TableZSize][TableASize];
-         G4ThreadLocal G4double radiusN[TableZSize][TableASize];
-         G4ThreadLocal G4double diffusenessP[TableZSize][TableASize];
-         G4ThreadLocal G4double diffusenessN[TableZSize][TableASize];
+         G4ThreadLocal HFBTables* theTables = nullptr;
    #else
-         G4double radiusP[TableZSize][TableASize];
-         G4double radiusN[TableZSize][TableASize];
-         G4double diffusenessP[TableZSize][TableASize];
-         G4double diffusenessN[TableZSize][TableASize];
+         HFBTables* theTables = nullptr;
    #endif
 
    void cleanTable(){
+    if(!theTables) theTables = new HFBTables;
     for(G4int i=0;i<TableZSize;++i)
      for(G4int j=0;j<TableASize;++j){
-      radiusP[i][j]=-1.;
-      radiusN[i][j]=-1.;
-      diffusenessP[i][j]=-1.;
-      diffusenessN[i][j]=-1.;
+      theTables->radiusP[i][j]=-1.;
+      theTables->radiusN[i][j]=-1.;
+      theTables->diffusenessP[i][j]=-1.;
+      theTables->diffusenessN[i][j]=-1.;
      }
    }
   }
@@ -118,10 +120,10 @@ namespace G4INCL {
       G4double rp, rn, dp, dn;
       while(hfbTableIn.good()) { /* Loop checking, 22.01.2018, J.L. Rodriguez */
         hfbTableIn >> z >> a >> rp >> rn >> dp >> dn;
-        radiusP[z][a] = rp;
-        radiusN[z][a] = rn;
-        diffusenessP[z][a] = dp;
-        diffusenessN[z][a] = dn;
+        theTables->radiusP[z][a] = rp;
+        theTables->radiusN[z][a] = rn;
+        theTables->diffusenessP[z][a] = dp;
+        theTables->diffusenessN[z][a] = dn;
         nbnuclei++;
       }
       hfbTableIn.close();
@@ -132,20 +134,22 @@ namespace G4INCL {
     G4double getRadiusParameterHFB(const ParticleType t, const G4int A, const G4int Z){
         // HFB calculations
       G4double r0=0.;
+        if(!theTables) return r0;
         if(t==Neutron)
-         if(radiusN[Z][A]>0.)r0=radiusN[Z][A];
+         if(theTables->radiusN[Z][A]>0.)r0=theTables->radiusN[Z][A];
         if(t==Proton)
-         if(radiusP[Z][A]>0.)r0=radiusP[Z][A];
+         if(theTables->radiusP[Z][A]>0.)r0=theTables->radiusP[Z][A];
       return r0;
     }
 
     G4double getSurfaceDiffusenessHFB(const ParticleType t, const G4int A, const G4int Z){
         // HFB calculations
       G4double a=0.;
+        if(!theTables) return a;
         if(t==Neutron)
-          if(diffusenessN[Z][A]>0.)a=diffusenessN[Z][A];
+          if(theTables->diffusenessN[Z][A]>0.)a=theTables->diffusenessN[Z][A];
         if(t==Proton)
-          if(diffusenessP[Z][A]>0.)a=diffusenessP[Z][A];
+          if(theTables->diffusenessP[Z][A]>0.)a=theTables->diffusenessP[Z][A];
       return a;
     }
   }
