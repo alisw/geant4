@@ -171,9 +171,9 @@ void G4WorkerThread::UpdateGeometryAndPhysicsVectorFromMaster()
     G4LogicalVolume* lv = it.first;
     G4VSensitiveDetector* sd = (it.second).first;
     G4FieldManager* fmgr = (it.second).second;
-    if (fmgr != nullptr)  // What should be the second parameter?
-    {  // We use always false for MT mode
-      lv->SetFieldManager(fmgr, false);
+    if (fmgr != nullptr) {
+      // not propagated: each volume with a field manager has its own entry
+      lv->AssignFieldManager(fmgr);
     }
     if (sd != nullptr) {
       lv->SetSensitiveDetector(sd);
